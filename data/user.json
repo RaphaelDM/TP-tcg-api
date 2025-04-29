@@ -1,0 +1,39 @@
+[
+  {
+    "id": 1,
+    "username": "Exemple",
+    "password": "exemple",
+    "collection": []
+  },
+  {
+    "id": 2,
+    "username": "Eylan",
+    "password": "azerty",
+    "collection": "chat,pousin"
+  },
+  {
+    "id": 3,
+    "username": "Eylanne",
+    "password": "azerty",
+    "collection": [],
+    "token": "dTU6o7bgzWLAHGDP"
+  },
+  {
+    "id": 4,
+    "username": "Raph",
+    "password": "azerty",
+    "collection": []
+  },
+  {
+    "id": 5,
+    "username": "Rapha",
+    "password": "azerty",
+    "collection": []
+  },
+  {
+    "id": 6,
+    "username": "Raphael",
+    "password": "azerty",
+    "collection": []
+  }
+]
