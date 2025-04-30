@@ -87,7 +87,7 @@ function LoginUser(req, res) {
         return res.status(401).json({ message: "Erreur : Identifiants invalides" });
     }
 
-    const user = users[userIndex]; // <-- CORRECTION : on récupère l'utilisateur
+    const user = users[userIndex]; 
 
     const token = jwt.sign(
         { id: user.id, username: user.username },
@@ -95,7 +95,6 @@ function LoginUser(req, res) {
         { expiresIn: '15min' }
     );
 
-    // Sauvegarder le token dans l'utilisateur
     users[userIndex].token = token;
     saveAllUsers(users);
 
@@ -106,6 +105,7 @@ function LoginUser(req, res) {
         }
     });
 }
+
 
 //__________________________________________________________________________
 
@@ -180,5 +180,6 @@ module.exports = {
     GetAllUsers,
     LoginUser,
     Disconnect,
-    GetUser
+    GetUser,
+    saveAllUsers
 };

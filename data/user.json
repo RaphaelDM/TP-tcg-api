@@ -15,7 +15,19 @@
     "id": 4,
     "username": "Raph",
     "password": "azerty",
-    "collection": []
+    "collection": [
+      {
+        "id": 25,
+        "name": "Pikachu",
+        "rarity": "rare"
+      },
+      {
+        "id": 150,
+        "name": "Mewtwo",
+        "rarity": "legendary"
+      }
+    ],
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NCwidXNlcm5hbWUiOiJSYXBoIiwiaWF0IjoxNzQ2MDM2NzczLCJleHAiOjE3NDYwMzc2NzN9.3o6a4Ev6CgCJ2ehWXwFjTF6Zv3eoHcsrxkLVpEgg9iU"
   },
   {
     "id": 5,

@@ -1,6 +1,7 @@
 console.log("Hello world, Node Js");
 const path = require("path");
 const users = require('./Moduleuser');
+const player = require('./cards');
 
 const express = require("express"); 
 const app = express();
@@ -26,6 +27,8 @@ app.post('/login', users.LoginUser);
 
 //Post pour déconnecter un utilisateur
 app.post('/deco', users.Disconnect);
+
+app.post("/booster", player.OpenBooster);
 
 app.listen(port, () =>
   console.log(`Serveur démarer sur http://localhost:3000 !`)
