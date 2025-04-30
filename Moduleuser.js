@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-
+const jwt = require('jsonwebtoken');
+const SECRET_KEY = 'mdp'; 
 const usersFilePath = path.join(__dirname, 'data', 'user.json');
 
 // Lire tous les utilisateurs depuis user.json
@@ -71,14 +72,6 @@ function RegisterUser(req, res) {
 //__________________________________________________________________________
 
 //___________________________Partie login______________________________________________
-function generateToken(length = 16) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let token = '';
-    for (let i = 0; i < length; i++) {
-        token += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return token;
-}
 
 function LoginUser(req, res) {
     if (!req.body || !req.body.username || !req.body.password) {
@@ -94,8 +87,13 @@ function LoginUser(req, res) {
         return res.status(401).json({ message: "Erreur : Identifiants invalides" });
     }
 
-    // Générer un token
-    const token = generateToken();
+    const user = users[userIndex]; // <-- CORRECTION : on récupère l'utilisateur
+
+    const token = jwt.sign(
+        { id: user.id, username: user.username },
+        SECRET_KEY,
+        { expiresIn: '15min' }
+    );
 
     // Sauvegarder le token dans l'utilisateur
     users[userIndex].token = token;
@@ -108,6 +106,7 @@ function LoginUser(req, res) {
         }
     });
 }
+
 //__________________________________________________________________________
 
 //___________________________Partie getAllUsers______________________________________________
@@ -119,6 +118,38 @@ function GetAllUsers(req, res) {
         "utilisateurs": users
     });
 }
+//__________________________________________________________________________
+//___________________________Partie getUser______________________________________________
+// Récupérer les informations de l'utilisateur connecté
+function GetUser(req, res) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+        return res.status(400).json({ message: "Token manquant" });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const users = getAllUsers();
+        const user = users.find(u => u.id === decoded.id);
+
+        if (!user) {
+            return res.status(404).json({ message: "Utilisateur non trouvé" });
+        }
+
+        const { password, ...safeUser } = user;
+        res.status(200).json({
+            message: "Utilisateur trouvé",
+            utilisateur: safeUser
+        });
+
+    } catch (err) {
+        res.status(401).json({ message: "Token invalide ou expiré" });
+    }
+}
+
 //__________________________________________________________________________
 
 //_____________________________Déconecter______________________________________________
@@ -148,5 +179,6 @@ module.exports = {
     RegisterUser,
     GetAllUsers,
     LoginUser,
-    Disconnect
+    Disconnect,
+    GetUser
 };
