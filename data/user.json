@@ -25,9 +25,45 @@
         "id": 150,
         "name": "Mewtwo",
         "rarity": "legendary"
+      },
+      {
+        "id": 150,
+        "name": "Mewtwo",
+        "rarity": "legendary"
+      },
+      {
+        "id": 7,
+        "name": "Carapuce",
+        "rarity": "common"
+      },
+      {
+        "id": 7,
+        "name": "Carapuce",
+        "rarity": "common"
+      },
+      {
+        "id": 7,
+        "name": "Carapuce",
+        "rarity": "common"
+      },
+      {
+        "id": 7,
+        "name": "Carapuce",
+        "rarity": "common"
+      },
+      {
+        "id": 4,
+        "name": "Salamèche",
+        "rarity": "common"
+      },
+      {
+        "id": 1,
+        "name": "Bulbizarre",
+        "rarity": "common"
       }
     ],
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NCwidXNlcm5hbWUiOiJSYXBoIiwiaWF0IjoxNzQ2MDM2NzczLCJleHAiOjE3NDYwMzc2NzN9.3o6a4Ev6CgCJ2ehWXwFjTF6Zv3eoHcsrxkLVpEgg9iU"
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NCwidXNlcm5hbWUiOiJSYXBoIiwiaWF0IjoxNzQ2MDQwMjY4LCJleHAiOjE3NDYwNDExNjh9.7fIJdxOrH6yIGml99Vl7IPNyhJZ9qFPFu2COgMEr1aU",
+    "lastBooster": 1746040680766
   },
   {
     "id": 5,
