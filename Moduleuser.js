@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const SECRET_KEY = 'mdp'; 
 const usersFilePath = path.join(__dirname, 'data', 'user.json');
 
+
 // Lire tous les utilisateurs depuis user.json
 function getAllUsers() {
     const data = fs.readFileSync(usersFilePath, 'utf8');
@@ -17,6 +18,22 @@ function saveAllUsers(users) {
     fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2), 'utf8');
 }
 
+function groupCollectionByCard(collection) {
+    const grouped = {};
+
+    collection.forEach((card) => {
+        const key = card.name;  // clé = nom de la carte
+        if (grouped[key]) {
+            grouped[key].count += 1;  // on augmente le count
+        } else {
+            // on clone la carte et ajoute count = 1
+            grouped[key] = { ...card, count: 1 };
+        }
+    });
+
+    // on retourne sous forme de tableau (Object.values)
+    return Object.values(grouped);
+}
 
 //___________________________Partie register______________________________________________
 function addUser(username, password, collection) {
@@ -131,12 +148,21 @@ function GetAllUsers(req, res) {
     if (modified) {
         saveAllUsers(users);
     }
+    const usersWithGroupedCollections = users.map((user) => {
+        const { password, ...safeUser } = user;
+        const groupedCollection = groupCollectionByCard(user.collection || []);
+        return {
+            ...safeUser,
+            collection: groupedCollection
+        };
+    });
 
     res.status(200).json({
         message: "Liste des utilisateurs",
-        utilisateurs: users
+        utilisateurs: usersWithGroupedCollections
     });
 }
+
 
 //__________________________________________________________________________
 //___________________________Partie getUser______________________________________________
@@ -150,23 +176,30 @@ function GetUser(req, res) {
 
     const token = authHeader.split(' ')[1];
 
+    const users = getAllUsers();  // 👈 décalé ici pour être dispo aussi dans le catch
+
     try {
         const decoded = jwt.verify(token, SECRET_KEY);
-        const users = getAllUsers();
         const user = users.find(u => u.id === decoded.id);
 
         if (!user) {
             return res.status(404).json({ message: "Utilisateur non trouvé" });
         }
 
+        // On groupe la collection avant d'envoyer
+        const groupedCollection = groupCollectionByCard(user.collection || []);
         const { password, ...safeUser } = user;
+
         res.status(200).json({
             message: "Utilisateur trouvé",
-            utilisateur: safeUser
+            utilisateur: {
+                ...safeUser,
+                collection: groupedCollection
+            }
         });
 
     } catch (err) {
-        // Tokken invalide ou expiré
+        // Token invalide ou expiré
         const userIndex = users.findIndex(u => u.token === token);
         if (userIndex !== -1) {
             delete users[userIndex].token;
@@ -177,6 +210,7 @@ function GetUser(req, res) {
         return res.status(401).json({ message: "Token invalide ou expiré (supprimé du fichier)" });
     }
 }
+
 
 //__________________________________________________________________________
 
@@ -209,5 +243,6 @@ module.exports = {
     LoginUser,
     Disconnect,
     GetUser,
-    saveAllUsers
+    saveAllUsers,
+    groupCollectionByCard
 };

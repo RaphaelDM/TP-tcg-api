@@ -28,8 +28,10 @@ app.post('/login', users.LoginUser);
 
 //Post pour déconnecter un utilisateur
 app.post('/deco', users.Disconnect);
-
+//Ouvrir un booster
 app.post("/booster", player.OpenBooster);
+
+// app.post("/convert", player.ConvertCard);
 
 app.listen(port, () =>
   console.log(`Serveur démarer sur http://localhost:3000 !`)
