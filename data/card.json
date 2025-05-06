@@ -1,7 +1,147 @@
-[   
-    { "id": 1, "name": "Bulbizarre", "rarity": "common" }, 
-    { "id": 4, "name": "Salamèche", "rarity": "common" }, 
-    { "id": 7, "name": "Carapuce", "rarity": "common" }, 
-    { "id": 25, "name": "Pikachu", "rarity": "rare" }, 
-    { "id": 150, "name": "Mewtwo", "rarity": "legendary" }
-]
+[
+    {
+      "id": 1,
+      "name": "Bulbizarre",
+      "rarity": "common",
+      "image": "https://img.pokemondb.net/artwork/bulbasaur.jpg"
+    },
+    {
+      "id": 4,
+      "name": "Salamèche",
+      "rarity": "common",
+      "image": "https://img.pokemondb.net/artwork/charmander.jpg"
+    },
+    {
+      "id": 7,
+      "name": "Carapuce",
+      "rarity": "common",
+      "image": "https://img.pokemondb.net/artwork/squirtle.jpg"
+    },
+    {
+      "id": 10,
+      "name": "Chenipan",
+      "rarity": "common",
+      "image": "https://img.pokemondb.net/artwork/caterpie.jpg"
+    },
+    {
+      "id": 13,
+      "name": "Aspicot",
+      "rarity": "common",
+      "image": "https://img.pokemondb.net/artwork/weedle.jpg"
+    },
+    {
+      "id": 16,
+      "name": "Roucool",
+      "rarity": "common",
+      "image": "https://img.pokemondb.net/artwork/pidgey.jpg"
+    },
+    {
+      "id": 19,
+      "name": "Rattata",
+      "rarity": "common",
+      "image": "https://img.pokemondb.net/artwork/rattata.jpg"
+    },
+    {
+      "id": 21,
+      "name": "Piafabec",
+      "rarity": "common",
+      "image": "https://img.pokemondb.net/artwork/spearow.jpg"
+    },
+    {
+      "id": 23,
+      "name": "Abo",
+      "rarity": "common",
+      "image": "https://img.pokemondb.net/artwork/ekans.jpg"
+    },
+    {
+      "id": 25,
+      "name": "Pikachu",
+      "rarity": "rare",
+      "image": "https://img.pokemondb.net/artwork/pikachu.jpg"
+    },
+    {
+      "id": 26,
+      "name": "Raichu",
+      "rarity": "rare",
+      "image": "https://img.pokemondb.net/artwork/raichu.jpg"
+    },
+    {
+      "id": 38,
+      "name": "Feunard",
+      "rarity": "rare",
+      "image": "https://img.pokemondb.net/artwork/ninetales.jpg"
+    },
+    {
+      "id": 45,
+      "name": "Rafflesia",
+      "rarity": "rare",
+      "image": "https://img.pokemondb.net/artwork/vileplume.jpg"
+    },
+    {
+      "id": 59,
+      "name": "Arcanin",
+      "rarity": "rare",
+      "image": "https://img.pokemondb.net/artwork/arcanine.jpg"
+    },
+    {
+      "id": 65,
+      "name": "Alakazam",
+      "rarity": "rare",
+      "image": "https://img.pokemondb.net/artwork/alakazam.jpg"
+    },
+    {
+      "id": 68,
+      "name": "Mackogneur",
+      "rarity": "rare",
+      "image": "https://img.pokemondb.net/artwork/machamp.jpg"
+    },
+    {
+      "id": 94,
+      "name": "Ectoplasma",
+      "rarity": "rare",
+      "image": "https://img.pokemondb.net/artwork/gengar.jpg"
+    },
+    {
+      "id": 131,
+      "name": "Lokhlass",
+      "rarity": "rare",
+      "image": "https://img.pokemondb.net/artwork/lapras.jpg"
+    },
+    {
+      "id": 143,
+      "name": "Ronflex",
+      "rarity": "rare",
+      "image": "https://img.pokemondb.net/artwork/snorlax.jpg"
+    },
+    {
+      "id": 144,
+      "name": "Artikodin",
+      "rarity": "legendary",
+      "image": "https://img.pokemondb.net/artwork/articuno.jpg"
+    },
+    {
+      "id": 145,
+      "name": "Électhor",
+      "rarity": "legendary",
+      "image": "https://img.pokemondb.net/artwork/zapdos.jpg"
+    },
+    {
+      "id": 146,
+      "name": "Sulfura",
+      "rarity": "legendary",
+      "image": "https://img.pokemondb.net/artwork/moltres.jpg"
+    },
+    {
+      "id": 150,
+      "name": "Mewtwo",
+      "rarity": "legendary",
+      "image": "https://img.pokemondb.net/artwork/mewtwo.jpg"
+    },
+    {
+      "id": 151,
+      "name": "Mew",
+      "rarity": "legendary",
+      "image": "https://img.pokemondb.net/artwork/mew.jpg"
+    }
+  ]
+  

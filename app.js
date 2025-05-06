@@ -1,11 +1,12 @@
 console.log("Hello world, Node Js");
-const path = require("path");
 const users = require('./Moduleuser');
 const player = require('./cards');
 
 const express = require("express"); 
 const app = express();
 const port = 3000;
+// Important : permet de lire les JSON envoyés via fetch(...)
+app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 

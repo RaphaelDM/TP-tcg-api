@@ -111,13 +111,33 @@ function LoginUser(req, res) {
 
 //___________________________Partie getAllUsers______________________________________________
 function GetAllUsers(req, res) {
-    const users = getAllUsers();
+    let users = getAllUsers();
+    let modified = false;
+
+    // Supprimer les tokens expirés
+    users.forEach((user, index) => {
+        if (user.token) {
+            try {
+                jwt.verify(user.token, SECRET_KEY);
+            } catch (err) {
+                delete users[index].token;
+                modified = true;
+                console.log(`Token expiré supprimé pour l'utilisateur ${user.username}`);
+            }
+        }
+    });
+
+    // Sauvegarder uniquement si des tokens ont été supprimés
+    if (modified) {
+        saveAllUsers(users);
+    }
 
     res.status(200).json({
-        "message": "Liste des utilisateurs",
-        "utilisateurs": users
+        message: "Liste des utilisateurs",
+        utilisateurs: users
     });
 }
+
 //__________________________________________________________________________
 //___________________________Partie getUser______________________________________________
 // Récupérer les informations de l'utilisateur connecté
@@ -146,7 +166,15 @@ function GetUser(req, res) {
         });
 
     } catch (err) {
-        res.status(401).json({ message: "Token invalide ou expiré" });
+        // Tokken invalide ou expiré
+        const userIndex = users.findIndex(u => u.token === token);
+        if (userIndex !== -1) {
+            delete users[userIndex].token;
+            saveAllUsers(users);
+            console.log(`Token expiré supprimé pour l'utilisateur ${users[userIndex].username}`);
+        }
+
+        return res.status(401).json({ message: "Token invalide ou expiré (supprimé du fichier)" });
     }
 }
 
@@ -170,7 +198,7 @@ function Disconnect(req, res) {
     // Supprimer le token
     delete users[userIndex].token;
     saveAllUsers(users);
-
+    console.log(`Token supprimé pour l'utilisateur ${users[userIndex].username}`);
     res.status(200).json({ message: "Déconnexion réussie" });
 }
 //__________________________________________________________________________
