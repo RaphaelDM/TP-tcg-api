@@ -18,23 +18,6 @@ function saveAllUsers(users) {
     fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2), 'utf8');
 }
 
-function groupCollectionByCard(collection) {
-    const grouped = {};
-
-    collection.forEach((card) => {
-        const key = card.name;  // clé = nom de la carte
-        if (grouped[key]) {
-            grouped[key].count += 1;  // on augmente le count
-        } else {
-            // on clone la carte et ajoute count = 1
-            grouped[key] = { ...card, count: 1 };
-        }
-    });
-
-    // on retourne sous forme de tableau (Object.values)
-    return Object.values(grouped);
-}
-
 //___________________________Partie register______________________________________________
 function addUser(username, password, collection) {
     let users = getAllUsers();
@@ -148,12 +131,11 @@ function GetAllUsers(req, res) {
     if (modified) {
         saveAllUsers(users);
     }
+
+    // Inclure le mot de passe et la collection groupée
     const usersWithGroupedCollections = users.map((user) => {
-        const { password, ...safeUser } = user;
-        const groupedCollection = groupCollectionByCard(user.collection || []);
         return {
-            ...safeUser,
-            collection: groupedCollection
+            ...user,  // garde toutes les propriétés, y compris le password
         };
     });
 
@@ -162,6 +144,7 @@ function GetAllUsers(req, res) {
         utilisateurs: usersWithGroupedCollections
     });
 }
+
 
 
 //__________________________________________________________________________
@@ -176,7 +159,7 @@ function GetUser(req, res) {
 
     const token = authHeader.split(' ')[1];
 
-    const users = getAllUsers();  // 👈 décalé ici pour être dispo aussi dans le catch
+    const users = getAllUsers();  
 
     try {
         const decoded = jwt.verify(token, SECRET_KEY);
@@ -186,15 +169,12 @@ function GetUser(req, res) {
             return res.status(404).json({ message: "Utilisateur non trouvé" });
         }
 
-        // On groupe la collection avant d'envoyer
-        const groupedCollection = groupCollectionByCard(user.collection || []);
         const { password, ...safeUser } = user;
 
         res.status(200).json({
             message: "Utilisateur trouvé",
             utilisateur: {
-                ...safeUser,
-                collection: groupedCollection
+                ...safeUser
             }
         });
 
@@ -244,5 +224,4 @@ module.exports = {
     Disconnect,
     GetUser,
     saveAllUsers,
-    groupCollectionByCard
 };

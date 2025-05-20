@@ -6,7 +6,7 @@ const SECRET_KEY = 'mdp';
 const DELAI_BOOSTER = 30000; // 30 secondes
 const NOMBRE_CARDS = 5; // Nombre de cartes par booster
 const cardsPath = path.join(__dirname, 'data', 'card.json');
-const { getAllUsers, saveAllUsers, groupCollectionByCard } = require('./Moduleuser');
+const { getAllUsers, saveAllUsers } = require('./Moduleuser');
 
 // Fonction de tirage selon rareté
 function RandomRarity(cards) {
@@ -21,7 +21,7 @@ function RandomRarity(cards) {
     if (rand < 80) {
         pool = commons;
         // console.log(`🎲 Tirage random pour rareté : ${rand} : communs`);
-    } else if (rand < 99, 9) {
+    } else if (rand < 97) {
         pool = rares;
         // console.log(`🎲 Tirage random pour rareté : ${rand} : rares`);
     } else {
@@ -30,6 +30,20 @@ function RandomRarity(cards) {
     }
 
     return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// Fonction pour voir les cartes possible 
+function GetAllCards(req, res) {
+    try {
+        const cards = JSON.parse(fs.readFileSync(cardsPath, 'utf8'));
+        res.status(200).json({
+            message: "Liste des cartes disponibles",
+            cartes: cards
+        });
+    } catch (err) {
+        console.error("Erreur lors de la lecture des cartes :", err.message);
+        res.status(500).json({ message: "Erreur serveur lors de la lecture des cartes." });
+    }
 }
 
 function OpenBooster(req, res) {
@@ -70,12 +84,23 @@ function OpenBooster(req, res) {
         // Tirage d'une carte ou plusieur carte par booster aléatoire
         for (let i = 0; i < NOMBRE_CARDS; i++) {
             const selectedCard = RandomRarity(cards);
-            // console.log(`Tirage de la carte ${i + 1} : ${selectedCard.name} (${selectedCard.rarity})`);
-            if (!Array.isArray(user.collection)) { // Vérifier si la collection est un tableau
+
+            if (!Array.isArray(user.collection)) {
                 user.collection = [];
             }
-            user.collection.push(selectedCard);
-            cartesGagnees.push(selectedCard);
+            const index = user.collection.findIndex(c => c.id === selectedCard.id);
+            if (index !== -1) {
+                user.collection[index].count = (user.collection[index].count || 1) + 1;
+            } else {
+                user.collection.push({
+                    id: selectedCard.id,
+                    name: selectedCard.name,
+                    rarity: selectedCard.rarity,
+                    image: selectedCard.image,
+                    count: 1
+                });
+            }
+            cartesGagnees.push(selectedCard); // On peut garder le push simple ici pour afficher les tirages
         }
 
         users[userIndex] = user; // Mettre à jour l'utilisateur dans le tableau
@@ -84,16 +109,13 @@ function OpenBooster(req, res) {
         const { password, ...safeUser } = user; // Enlever le mot de passe de la réponse
         delete safeUser.lastBooster; // Enlever lastBooster de la réponse
 
-        // Regrouper la collection :
-        const groupedCollection = groupCollectionByCard(user.collection);
-
 
         res.status(200).json({
             message: "Booster ouvert avec succès",
             cartesGagnee: cartesGagnees,
             utilisateur: {
                 ...safeUser,
-                collection: groupedCollection  //collection déjà groupée
+                collection: user.collection  //collection déjà groupée
             }
         });
 
@@ -106,6 +128,6 @@ function OpenBooster(req, res) {
 
 
 module.exports = {
-    OpenBooster,
+    OpenBooster, GetAllCards
 
 };
