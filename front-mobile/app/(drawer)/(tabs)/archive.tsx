@@ -51,6 +51,7 @@ export default function Library() {
       <View style={styles.userItem}>
         <Text style={styles.userTitle}>👤 {item.username}</Text>
         <Text style={styles.userInfo}>🔒 Mot de passe : {item.password}</Text>
+        <Text style={styles.userInfo}>💵 Monais : {item.currency} €</Text>
         <Text style={styles.userInfo}>🪙 Token :</Text>
         <Text style={styles.tokenBox}>{item.token}</Text>
 

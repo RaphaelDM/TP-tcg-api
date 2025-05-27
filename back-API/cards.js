@@ -12,6 +12,15 @@ const SECRET_KEY = 'mdp';               // Clé secrète pour les JWT (à sécur
 const DELAI_BOOSTER = 30000;            // Délai minimum (en ms) entre deux boosters : 30 secondes
 const NOMBRE_CARDS = 5;                 // Nombre de cartes tirées par booster
 
+
+// Valeur de conversion par rareté
+const VALEUR_CONVERSION = {
+    common: 10,
+    rare: 20,
+    legendary: 50,
+};
+
+
 // =============================
 // Fonction utilitaire : RandomRarity
 // =============================
@@ -137,9 +146,76 @@ async function OpenBooster(req, res) {
 }
 
 // =============================
+// Route POST /convert
+// =============================
+async function ConvertCard(req, res) {
+    const authHeader = req.headers.authorization;
+    const { cardId, amount } = req.body;
+
+    // Vérifie que les paramètres sont bien fournis et valides
+    if (!authHeader || !cardId || !amount || amount < 1) {
+        return res.status(400).json({ message: "Paramètres manquants ou invalides" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    try {
+        // Vérifie et décode le token JWT
+        const decoded = jwt.verify(token, SECRET_KEY);
+
+        // Récupère l'utilisateur à partir de l'ID contenu dans le token
+        const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+        if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
+
+        // Récupère la collection de l'utilisateur
+        let collection = Array.isArray(user.collection) ? user.collection : [];
+        const index = collection.findIndex(c => c.id === cardId);
+
+        // Vérifie si la carte est présente et en quantité suffisante
+        if (index === -1 || collection[index].count <= amount) {
+            return res.status(400).json({ message: "Pas assez de doublons pour cette conversion" });
+        }
+
+        // Récupère les infos de la carte (notamment la rareté)
+        const card = await prisma.card.findUnique({ where: { id: cardId } });
+        if (!card) return res.status(404).json({ message: "Carte introuvable" });
+
+        // Met à jour la collection en retirant les doublons convertis
+        collection[index].count -= amount;
+
+        // Calcule les crédits gagnés selon la rareté de la carte
+        const gain = VALEUR_CONVERSION[card.rarity] * amount;
+        const newCurrency = (user.currency || 0) + gain;
+
+        // Met à jour l'utilisateur dans la base de données
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                collection,
+                currency: newCurrency
+            }
+        });
+
+        // Répond au client avec les infos mises à jour
+        res.status(200).json({
+            message: `${amount} carte(s) convertie(s) (+${gain} crédits)`,
+            currency: newCurrency,
+            collection
+        });
+
+    } catch (err) {
+        console.error("Convert error:", err.message);
+        res.status(401).json({ message: "Token invalide ou expiré" });
+    }
+}
+
+
+
+// =============================
 // Exportation des fonctions
 // =============================
 module.exports = {
     GetAllCards,
-    OpenBooster
+    OpenBooster,
+    ConvertCard
 };

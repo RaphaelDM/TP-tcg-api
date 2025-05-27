@@ -33,6 +33,8 @@ app.post("/booster", player.OpenBooster);
 
 // Cartes (nouveau via Prisma)
 app.get("/cards", player.GetAllCards);
+// Convertion Cartes 
+app.post("/convert", player.ConvertCard);
 
 app.listen(port, () =>
   console.log(`✅ Serveur démarré sur http://localhost:${port}`)

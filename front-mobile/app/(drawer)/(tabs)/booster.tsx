@@ -1,17 +1,22 @@
+// =============================
+// Dépendances et imports React Native
+// =============================
 import React, { useState } from "react";
 import {
   View,
   Text,
   TextInput,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
   Image,
-  Dimensions,
 } from "react-native";
 
+// =============================
+// Interfaces de données
+// =============================
 interface Card {
+  id: number;
   name: string;
   rarity: "common" | "rare" | "legendary";
   image: string;
@@ -21,23 +26,35 @@ interface Card {
 interface User {
   id: number;
   username: string;
+  token: string;
+  currency: number;
   collection: Card[];
 }
 
+// =============================
+// Composant principal
+// =============================
 export default function Dashboard() {
+  // États d’authentification
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<User | null>(null);
+
+  // États pour booster / messages
   const [boosterCards, setBoosterCards] = useState<Card[]>([]);
   const [apiMessage, setApiMessage] = useState("");
   const [loginError, setLoginError] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
   const [registerMessage, setRegisterMessage] = useState("");
-  const [allCards, setAllCards] = useState<Card[]>([]);
-  const [viewMode, setViewMode] = useState<"collection" | "booster" | null>(
-    null
-  );
+  const [viewMode, setViewMode] = useState<"collection" | "booster" | null>(null);
+
+  // Quantités sélectionnées pour la conversion de doublons
+  const [convertQuantities, setConvertQuantities] = useState<{ [cardId: number]: number }>({});
+
+  // =============================
+  // Fonctions : Authentification
+  // =============================
 
   const register = async () => {
     setRegisterMessage("");
@@ -48,19 +65,16 @@ export default function Dashboard() {
     });
 
     const json = await res.json();
-
     if (res.ok) {
-      setRegisterMessage(
-        "✅ Compte créé avec succès ! Vous pouvez vous connecter."
-      );
-      setMode("login"); // Revenir à la connexion
+      setRegisterMessage("✅ Compte créé avec succès !");
+      setMode("login");
     } else {
       setRegisterMessage(json.message || "❌ Erreur lors de l’inscription");
     }
   };
 
   const login = async () => {
-    setLoginError(""); // Reset erreur avant nouvelle tentative
+    setLoginError("");
     const res = await fetch("http://172.20.10.2:3000/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -68,7 +82,6 @@ export default function Dashboard() {
     });
 
     const json = await res.json();
-
     if (res.ok && json.data?.token) {
       setToken(json.data.token);
       setLoginError("");
@@ -77,6 +90,23 @@ export default function Dashboard() {
     }
   };
 
+  const logout = async () => {
+    await fetch("http://172.20.10.2:3000/deco", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    // Réinitialise les données
+    setToken(null);
+    setUserInfo(null);
+    setBoosterCards([]);
+    setUsername("");
+    setPassword("");
+  };
+
+  // =============================
+  // Récupération des données utilisateur
+  // =============================
   const fetchUser = async () => {
     const res = await fetch("http://172.20.10.2:3000/user", {
       headers: { Authorization: `Bearer ${token}` },
@@ -92,74 +122,69 @@ export default function Dashboard() {
     setApiMessage("");
   };
 
+  // =============================
+  // Booster : Tirage de cartes
+  // =============================
   const openBooster = async () => {
     try {
       const res = await fetch("http://172.20.10.2:3000/booster", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const json = await res.json();
 
       if (!res.ok) {
-        setApiMessage(json.message || "Erreur inconnue");
+        setApiMessage(json.message || "Erreur");
         return;
       }
 
       setBoosterCards(json.cartesGagnee);
-      setApiMessage("🎉 Booster ouvert avec succès !");
+      setApiMessage("🎉 Booster ouvert !");
       setViewMode("booster");
-      fetchUser(); // On met à jour les données de l'utilisateur, mais on reste sur booster view
+      fetchUser();
     } catch (err) {
-      console.error("Erreur lors de l'ouverture du booster :", err);
-      setApiMessage("❌ Une erreur est survenue");
+      setApiMessage("❌ Erreur réseau");
     }
   };
 
-  const logout = async () => {
-    await fetch("http://172.20.10.2:3000/deco", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token }),
-    });
-    setToken(null);
-    setUserInfo(null);
-    setBoosterCards([]);
-    setUsername("");
-    setPassword("");
-  };
-
-  const groupByRarity = (cards: Card[]) => {
-    const grouped = {
-      common: [] as Card[],
-      rare: [] as Card[],
-      legendary: [] as Card[],
-    };
-
-    cards.forEach((card) => {
-      if (card.rarity === "common") grouped.common.push(card);
-      else if (card.rarity === "rare") grouped.rare.push(card);
-      else if (card.rarity === "legendary") grouped.legendary.push(card);
-    });
-
-    return grouped;
-  };
-
-  const fetchAllCards = async () => {
+  // =============================
+  // Conversion des doublons
+  // =============================
+  const handleConvert = async (cardId: number, amount: number) => {
     try {
-      const res = await fetch("http://172.20.10.2:3000/cartes");
+      const res = await fetch("http://172.20.10.2:3000/convert", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cardId, amount }),
+      });
+
       const json = await res.json();
       if (res.ok) {
-        setAllCards(json.cartes);
-        console.log("✅ Cartes récupérées :", json.cartes.length);
+        setApiMessage(json.message);
+        fetchUser(); // met à jour la collection
       } else {
-        console.warn("❌ Erreur lors de la récupération des cartes");
+        setApiMessage(json.message || "❌ Conversion échouée");
       }
-    } catch (err) {
-      console.error("❌ Erreur réseau :", err);
+    } catch {
+      setApiMessage("❌ Erreur réseau");
     }
   };
 
+  // Met à jour la quantité de cartes à convertir
+  const updateConvertAmount = (cardId: number, delta: number, max: number) => {
+    setConvertQuantities((prev) => {
+      const current = prev[cardId] || 1;
+      const newValue = Math.max(1, Math.min(current + delta, max));
+      return { ...prev, [cardId]: newValue };
+    });
+  };
+
+  // ...
+  // Ensuite tu peux commenter les blocs JSX si tu veux (login form, booster view, collection view, etc.)
+  // ...
   return (
     <ScrollView
       contentContainerStyle={[
@@ -225,6 +250,14 @@ export default function Dashboard() {
       ) : (
         <>
           <View style={styles.headerContainer}>
+            {userInfo && (
+              <View style={styles.currencyBadge}>
+                <Text style={styles.currencyText}>
+                  {userInfo.currency || 0}
+                </Text>
+                <Text style={styles.currencyIcon}>💰</Text>
+              </View>
+            )}
             <TouchableOpacity style={styles.button} onPress={handleViewProfile}>
               <Text style={styles.buttonText}>👤 Voir mon profil</Text>
             </TouchableOpacity>
@@ -304,6 +337,95 @@ export default function Dashboard() {
                             {card.name}{" "}
                             {card.count > 1 ? `(x${card.count})` : ""}
                           </Text>
+
+                          {card.count > 1 && (
+                            <View
+                              style={{ alignItems: "center", marginTop: 6 }}
+                            >
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  marginBottom: 4,
+                                }}
+                              >
+                                <TouchableOpacity
+                                  style={{
+                                    backgroundColor: "#444",
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 4,
+                                    borderRadius: 4,
+                                  }}
+                                  onPress={() =>
+                                    updateConvertAmount(
+                                      card.id,
+                                      -1,
+                                      card.count - 1
+                                    )
+                                  }
+                                >
+                                  <Text style={{ color: "#fff", fontSize: 16 }}>
+                                    –
+                                  </Text>
+                                </TouchableOpacity>
+
+                                <Text
+                                  style={{
+                                    marginHorizontal: 10,
+                                    color: "#fff",
+                                  }}
+                                >
+                                  {convertQuantities[card.id] || 1}
+                                </Text>
+
+                                <TouchableOpacity
+                                  style={{
+                                    backgroundColor: "#444",
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 4,
+                                    borderRadius: 4,
+                                  }}
+                                  onPress={() =>
+                                    updateConvertAmount(
+                                      card.id,
+                                      1,
+                                      card.count - 1
+                                    )
+                                  }
+                                >
+                                  <Text style={{ color: "#fff", fontSize: 16 }}>
+                                    +
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+
+                              <TouchableOpacity
+                                style={[
+                                  styles.button,
+                                  {
+                                    backgroundColor: "#FF6B6B",
+                                    paddingVertical: 6,
+                                  },
+                                ]}
+                                onPress={() =>
+                                  handleConvert(
+                                    card.id,
+                                    convertQuantities[card.id] || 1
+                                  )
+                                }
+                              >
+                                <Text
+                                  style={{
+                                    color: "white",
+                                    fontSize: 12,
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  🔁 Convertir
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          )}
                         </View>
                       ))}
                   </View>
@@ -477,5 +599,30 @@ const styles = StyleSheet.create({
   boosterCardsScroll: {
     marginTop: 20,
     maxHeight: 180,
+  },
+
+  currencyBadge: {
+    position: "absolute",
+    top: 35,
+    right: 10,
+    backgroundColor: "#1e1e1e",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  currencyText: {
+    color: "#FFD700",
+    fontWeight: "bold",
+    fontSize: 14,
+    marginRight: 4,
+  },
+  currencyIcon: {
+    fontSize: 16,
   },
 });

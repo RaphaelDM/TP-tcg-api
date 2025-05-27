@@ -8,8 +8,8 @@ Une application mobile et une API pour gérer un **jeu de cartes à collectionne
 
 * 📲 Application mobile React Native
 * 🔥 Navigation simple : Accès à la collection et aux boosters
-* 🃏 Affichage des cartes via une API Node/Express
-* 🎨 Interface inspirée de l’univers Pokémon
+* 🃏 Affichage des cartes via une API Node/Express 
+* Systeme d'enchère 
 
 
 ---

@@ -110,24 +110,34 @@ async function Disconnect(req, res) {
 // ===========================
 // Fonction : GetAllUsers
 // ===========================
-// Récupère la liste de tous les utilisateurs (sans les mots de passe)
 async function GetAllUsers(req, res) {
   try {
     const users = await prisma.user.findMany();
 
-    // On retire les mots de passe et convertit lastBooster (BigInt → Number)
-    const safeUsers = users.map(user => {
-      const { password, ...rest } = user;
-      return {
-        ...rest,
-        lastBooster: user.lastBooster ? Number(user.lastBooster) : null,
-      };
-    });
+    // ✅ Convertit les BigInt en Number (notamment lastBooster) et inclut les mots de passe
+    const safeUsers = users.map(user => ({
+      ...user,
+      lastBooster: user.lastBooster ? Number(user.lastBooster) : null,
+    }));
 
     res.status(200).json({
       message: 'Liste des utilisateurs',
-      utilisateurs: safeUsers,
+      utilisateurs: safeUsers // mots de passe inclus, BigInt convertis
     });
+
+    // 🔐 Variante sécurisée (commentée) — sans mot de passe :
+    // const filteredUsers = users.map(user => {
+    //   const { password, ...rest } = user;
+    //   return {
+    //     ...rest,
+    //     lastBooster: user.lastBooster ? Number(user.lastBooster) : null,
+    //   };
+    // });
+    // res.status(200).json({
+    //   message: 'Liste des utilisateurs',
+    //   utilisateurs: filteredUsers,
+    // });
+
   } catch (error) {
     console.error("❌ Erreur dans GetAllUsers:", error);
     res.status(500).json({ message: "Erreur serveur" });
