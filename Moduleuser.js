@@ -1,227 +1,185 @@
-const fs = require('fs');
-const path = require('path');
-const jwt = require('jsonwebtoken');
-const SECRET_KEY = 'mdp'; 
-const usersFilePath = path.join(__dirname, 'data', 'user.json');
+// Importation des modules nécessaires
+const { PrismaClient } = require('@prisma/client'); // ORM pour interagir avec la base de données
+const jwt = require('jsonwebtoken');                // Pour la génération et vérification des tokens JWT
+const prisma = new PrismaClient();                  // Instance Prisma pour effectuer les requêtes
 
+const SECRET_KEY = 'mdp'; // Clé secrète utilisée pour signer les tokens JWT (à sécuriser en prod)
 
-// Lire tous les utilisateurs depuis user.json
-function getAllUsers() {
-    const data = fs.readFileSync(usersFilePath, 'utf8');
-    // console.log("Data read from file:", data); // Debug
-    return JSON.parse(data);
-    
+// ===========================
+// Fonction : RegisterUser
+// ===========================
+// Inscription d'un nouvel utilisateur
+async function RegisterUser(req, res) {
+  const { username, password } = req.body;
+
+  // Vérifie que le nom d'utilisateur et le mot de passe sont fournis
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username ou password manquant' });
+  }
+
+  // Vérifie si l'utilisateur existe déjà
+  const existing = await prisma.user.findUnique({ where: { username } });
+  if (existing) {
+    return res.status(409).json({ message: 'Utilisateur existe déjà' });
+  }
+
+  // Crée un nouvel utilisateur avec une collection vide, aucun booster ouvert et aucun token
+  const user = await prisma.user.create({
+    data: {
+      username,
+      password,
+      collection: [],
+      lastBooster: null,
+      token: null,
+    },
+  });
+
+  // Retourne l'utilisateur créé (mot de passe inclus ici → à filtrer en prod)
+  res.status(201).json({
+    message: 'Utilisateur ajouté avec succès',
+    utilisateur: user,
+  });
 }
 
-// Enregistrer les utilisateurs dans user.json
-function saveAllUsers(users) {
-    fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2), 'utf8');
+// ===========================
+// Fonction : LoginUser
+// ===========================
+// Connexion d'un utilisateur existant
+async function LoginUser(req, res) {
+  const { username, password } = req.body;
+
+  // Vérifie que les identifiants sont fournis
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username ou password manquant' });
+  }
+
+  // Recherche de l'utilisateur avec les bons identifiants
+  const user = await prisma.user.findFirst({
+    where: { username, password },
+  });
+
+  // Si aucun utilisateur trouvé, retourne une erreur
+  if (!user) {
+    return res.status(401).json({ message: 'Identifiants invalides' });
+  }
+
+  // Génère un token JWT valide 15 minutes
+  const token = jwt.sign({ id: user.id, username }, SECRET_KEY, {
+    expiresIn: '15min',
+  });
+
+  // Met à jour le token de l'utilisateur en base
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { token },
+  });
+
+  // Retourne le token généré
+  res.status(200).json({
+    message: 'Authentification réussie',
+    data: { token },
+  });
 }
 
-//___________________________Partie register______________________________________________
-function addUser(username, password, collection) {
-    let users = getAllUsers();
+// ===========================
+// Fonction : Disconnect
+// ===========================
+// Déconnexion d’un utilisateur (invalide son token)
+async function Disconnect(req, res) {
+  const { token } = req.body;
 
-    // Vérifier si le username existe déjà
-    const userExists = users.some(user => user.username === username);
-    if (userExists) {
-        return { success: false, message: "Erreur : Utilisateur existe déjà" };
+  if (!token) {
+    return res.status(400).json({ message: 'Token manquant' });
+  }
+
+  // Décode le token (sans vérification de validité)
+  const decoded = jwt.decode(token);
+  if (!decoded) {
+    return res.status(401).json({ message: 'Token invalide' });
+  }
+
+  // Supprime le token dans la base de l'utilisateur
+  await prisma.user.update({
+    where: { id: decoded.id },
+    data: { token: null },
+  });
+
+  res.status(200).json({ message: 'Déconnexion réussie' });
+}
+
+// ===========================
+// Fonction : GetAllUsers
+// ===========================
+// Récupère la liste de tous les utilisateurs (sans les mots de passe)
+async function GetAllUsers(req, res) {
+  try {
+    const users = await prisma.user.findMany();
+
+    // On retire les mots de passe et convertit lastBooster (BigInt → Number)
+    const safeUsers = users.map(user => {
+      const { password, ...rest } = user;
+      return {
+        ...rest,
+        lastBooster: user.lastBooster ? Number(user.lastBooster) : null,
+      };
+    });
+
+    res.status(200).json({
+      message: 'Liste des utilisateurs',
+      utilisateurs: safeUsers,
+    });
+  } catch (error) {
+    console.error("❌ Erreur dans GetAllUsers:", error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+}
+
+// ===========================
+// Fonction : GetUser
+// ===========================
+// Récupère les informations de l'utilisateur à partir du token fourni
+async function GetUser(req, res) {
+  const authHeader = req.headers.authorization;
+
+  // Vérifie que le token est présent dans l'en-tête
+  if (!authHeader) {
+    return res.status(400).json({ message: 'Token manquant' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    // Vérifie et décode le token
+    const decoded = jwt.verify(token, SECRET_KEY);
+
+    // Récupère l'utilisateur par son ID
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
     }
 
-    // Générer un nouvel id
-    let newId = 1;
-    if (users.length > 0) {
-        newId = users[users.length - 1].id + 1;
-    }
-
-    const newUser = {
-        id: newId,
-        username: username,
-        password: password,
-        collection: collection || [], 
+    // Filtre le mot de passe et convertit lastBooster
+    const { password, ...rest } = user;
+    const safeUser = {
+      ...rest,
+      lastBooster: user.lastBooster ? Number(user.lastBooster) : null,
     };
 
-    users.push(newUser);
-    saveAllUsers(users);
-
-    return { success: true, user: newUser };
-}
-
-function RegisterUser(req, res) {
-    if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json({ "message": "Erreur : Aucune donnée reçue" });
-    }
-
-    const { username, password, collection } = req.body;
-
-    if (!username || !password) {
-        return res.status(400).json({ "message": "Erreur : Username ou password manquant" });
-    }
-
-    const result = addUser(username, password, collection);
-
-    if (!result.success) {
-        return res.status(409).json({ "message": result.message });
-    }
-
-    res.status(201).json({
-        "message": "Utilisateur ajouté avec succès",
-        "utilisateur": result.user
-    });
-}
-//__________________________________________________________________________
-
-//___________________________Partie login______________________________________________
-
-function LoginUser(req, res) {
-    if (!req.body || !req.body.username || !req.body.password) {
-        return res.status(400).json({ message: "Erreur : Username ou password manquant" });
-    }
-
-    const { username, password } = req.body;
-    let users = getAllUsers();
-
-    const userIndex = users.findIndex(user => user.username === username && user.password === password);
-
-    if (userIndex === -1) {
-        return res.status(401).json({ message: "Erreur : Identifiants invalides" });
-    }
-
-    const user = users[userIndex]; 
-
-    const token = jwt.sign(
-        { id: user.id, username: user.username },
-        SECRET_KEY,
-        { expiresIn: '15min' }
-    );
-
-    users[userIndex].token = token;
-    saveAllUsers(users);
-
     res.status(200).json({
-        message: "Authentification réussie",
-        data: {
-            token: token
-        }
+      message: 'Utilisateur trouvé',
+      utilisateur: safeUser,
     });
+  } catch (err) {
+    return res.status(401).json({ message: 'Token invalide ou expiré' });
+  }
 }
 
-
-//__________________________________________________________________________
-
-//___________________________Partie getAllUsers______________________________________________
-function GetAllUsers(req, res) {
-    let users = getAllUsers();
-    let modified = false;
-
-    // Supprimer les tokens expirés
-    users.forEach((user, index) => {
-        if (user.token) {
-            try {
-                jwt.verify(user.token, SECRET_KEY);
-            } catch (err) {
-                delete users[index].token;
-                modified = true;
-                console.log(`Token expiré supprimé pour l'utilisateur ${user.username}`);
-            }
-        }
-    });
-
-    // Sauvegarder uniquement si des tokens ont été supprimés
-    if (modified) {
-        saveAllUsers(users);
-    }
-
-    // Inclure le mot de passe et la collection groupée
-    const usersWithGroupedCollections = users.map((user) => {
-        return {
-            ...user,  // garde toutes les propriétés, y compris le password
-        };
-    });
-
-    res.status(200).json({
-        message: "Liste des utilisateurs",
-        utilisateurs: usersWithGroupedCollections
-    });
-}
-
-
-
-//__________________________________________________________________________
-//___________________________Partie getUser______________________________________________
-// Récupérer les informations de l'utilisateur connecté
-function GetUser(req, res) {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-        return res.status(400).json({ message: "Token manquant" });
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    const users = getAllUsers();  
-
-    try {
-        const decoded = jwt.verify(token, SECRET_KEY);
-        const user = users.find(u => u.id === decoded.id);
-
-        if (!user) {
-            return res.status(404).json({ message: "Utilisateur non trouvé" });
-        }
-
-        const { password, ...safeUser } = user;
-
-        res.status(200).json({
-            message: "Utilisateur trouvé",
-            utilisateur: {
-                ...safeUser
-            }
-        });
-
-    } catch (err) {
-        // Token invalide ou expiré
-        const userIndex = users.findIndex(u => u.token === token);
-        if (userIndex !== -1) {
-            delete users[userIndex].token;
-            saveAllUsers(users);
-            console.log(`Token expiré supprimé pour l'utilisateur ${users[userIndex].username}`);
-        }
-
-        return res.status(401).json({ message: "Token invalide ou expiré (supprimé du fichier)" });
-    }
-}
-
-
-//__________________________________________________________________________
-
-//_____________________________Déconecter______________________________________________
-function Disconnect(req, res) {
-    const { token } = req.body;
-
-    if (!token) {
-        return res.status(400).json({ message: "Erreur : Token manquant" });
-    }
-
-    let users = getAllUsers();
-    const userIndex = users.findIndex(user => user.token === token);
-
-    if (userIndex === -1) {
-        return res.status(401).json({ message: "Erreur : Token invalide" });
-    }
-
-    // Supprimer le token
-    delete users[userIndex].token;
-    saveAllUsers(users);
-    console.log(`Token supprimé pour l'utilisateur ${users[userIndex].username}`);
-    res.status(200).json({ message: "Déconnexion réussie" });
-}
-//__________________________________________________________________________
+// Export des fonctions pour les utiliser dans les routes
 module.exports = {
-    getAllUsers,
-    RegisterUser,
-    GetAllUsers,
-    LoginUser,
-    Disconnect,
-    GetUser,
-    saveAllUsers,
+  RegisterUser,
+  LoginUser,
+  Disconnect,
+  GetAllUsers,
+  GetUser,
 };

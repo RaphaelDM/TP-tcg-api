@@ -811,8 +811,7 @@
         "count": 1
       }
     ],
-    "lastBooster": 1747731054284,
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywidXNlcm5hbWUiOiJSYXBoIiwiaWF0IjoxNzQ3NzMxMDE4LCJleHAiOjE3NDc3MzE5MTh9.dxXmorbDjL---Btc1XA6wJ1-Kz7HMAujFgUcMkLpBFQ"
+    "lastBooster": 1747731054284
   },
   {
     "id": 4,
@@ -855,7 +854,6 @@
         "count": 1
       }
     ],
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NCwidXNlcm5hbWUiOiJSYXBoYSIsImlhdCI6MTc0NzcyODEyOCwiZXhwIjoxNzQ3NzI5MDI4fQ.Cr89OzesckzJ2dPnvcUBPzSeKjDzJzNmNv5jhINXYdo",
     "lastBooster": 1747728131018
   }
 ]

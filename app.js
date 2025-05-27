@@ -1,62 +1,39 @@
 console.log("Hello world, Node Js");
-const Card = require('./Models/cardEntity');
-const users = require('./Moduleuser');
-const player = require('./cards');
-// const bdd = require('./db');
-// const User = require('./Models/user');
-// const card = require('');
 
-
-
-const express = require("express"); 
+const express = require("express");
 const app = express();
 const port = 3000;
 
-// async function main() {
-//   try {
-//     await bdd.authenticate();
-//     console.log("✅ Connexion réussie à la BDD");
+const users = require("./Moduleuser");
+const player = require("./cards");
 
-//     await bdd.sync({ alter: true }); // Crée les tables
-//     console.log("✅ Tables synchronisées");
-//   } catch (error) {
-//     console.error("❌ Erreur de connexion :", error);
-//   }
-// }
-// main();
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
-// Important : permet de lire les JSON envoyés via fetch(...)
 app.use(express.json());
-
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) =>
-  res.send("Bienvenue sur l'API TCG")
+  res.send("Bienvenue sur l'API TCG avec Prisma 🚀")
 );
 
-//Post pour ajouter un utilisateur
+// Inscription
 app.post("/inscrit", users.RegisterUser);
 
-//Get pour récupérer tous les utilisateurs
-app.get('/users', users.GetAllUsers);
+// Connexion / Déconnexion
+app.post("/login", users.LoginUser);
+app.post("/deco", users.Disconnect);
 
-//Get pour toute les cartes a collectionner 
-app.get('/card', player.GetAllCards);
+// Infos utilisateur
+app.get("/user", users.GetUser);
+app.get("/users", users.GetAllUsers);
 
-//Get pour récupérer tous les utilisateurs en fonction du token
-app.get('/user', users.GetUser);
-
-//Post lorsqu'un utilisateur se connecte
-app.post('/login', users.LoginUser);
-
-//Post pour déconnecter un utilisateur
-app.post('/deco', users.Disconnect);
-//Ouvrir un booster
+// Booster
 app.post("/booster", player.OpenBooster);
 
-// app.post("/convert", player.ConvertCard);
+// Cartes (nouveau via Prisma)
+app.get("/cards", player.GetAllCards);
 
 app.listen(port, () =>
-  console.log(`Serveur démarer sur http://localhost:3000 !`)
+  console.log(`✅ Serveur démarré sur http://localhost:${port}`)
 );
-
