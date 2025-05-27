@@ -1,0 +1,113 @@
+# 🥢 Pokémon TCG – App Mobile & API
+
+Une application mobile et une API pour gérer un **jeu de cartes à collectionner Pokémon** avec ouverture de boosters, collection dynamique, et affichage des cartes disponibles.
+
+---
+
+## 🚀 Fonctionnalités
+
+* 📲 Application mobile React Native
+* 🔥 Navigation simple : Accès à la collection et aux boosters
+* 🃏 Affichage des cartes via une API Node/Express
+* 🎨 Interface inspirée de l’univers Pokémon
+
+
+---
+
+## 📁 Structure du projet
+
+```
+/backend            ← Express.js + Prisma API
+/mobile             ← App mobile React Native (Expo)
+/README.md
+```
+
+---
+
+## 📦 Prérequis
+
+* Node.js (>= 16)
+* Expo CLI (`npm install -g expo-cli`)
+* MySQL (pour la base de données Prisma)
+* Git
+
+---
+
+## 🔧 Installation
+
+### 1. Clone le projet
+
+```bash
+git clone https://github.com/RaphaelDM/TP-tcg-api.git
+cd TP-tcg-api
+```
+
+---
+
+## 🔧 Lancer l'API Express
+
+```bash
+cd backend
+npm install
+npx prisma generate
+npx prisma migrate dev --name init
+npm start
+```
+
+> L'API démarre sur `http://localhost:3000`
+
+---
+
+## 📱 Lancer l'app mobile
+
+```bash
+cd front-mobile
+npm install
+npx expo start
+```
+
+> Ouvrez avec l'app Expo Go sur Android/iOS
+
+---
+
+## 🛍️ Navigation mobile
+
+| Écran      | Description                             |
+| ---------- | --------------------------------------- |
+| Accueil    | Page d’entrée avec 2 boutons principaux |
+| Collection | Affiche toutes les cartes disponibles   |
+| Booster    | Permet d’ouvrir un booster de cartes    |
+
+---
+
+## 🔌 API – Endpoints principaux
+
+| Méthode | URL         | Description                  |
+| ------- | ----------- | ---------------------------- |
+| GET     | `/cartes`   | Récupère toutes les cartes   |
+| POST    | `/booster`  | Tire un booster de cartes    |
+| POST    | `/register` | Inscription d’un utilisateur |
+| POST    | `/login`    | Connexion                    |
+
+---
+
+## 🖼️ Design Pokémon
+
+* 🎨 Thème : Jaune pastel / Bleu clair
+* 📲 Police simple, boutons arrondis
+* 🥢 Style rétro et minimaliste, ambiance Pokedex
+
+---
+📚 Sources
+
+OpenAI / ChatGPT
+
+Node.js documentation
+
+Prisma documentation
+---
+## 📃 Licence
+
+Projet pédagogique — libre pour usage académique.
+
+
