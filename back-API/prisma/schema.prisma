@@ -12,6 +12,8 @@ model card {
   name   String
   rarity String
   image  String
+
+  auctions Auction[] // Relation inverse (si tu veux aussi la carte → enchères)
 }
 
 model user {
@@ -22,4 +24,24 @@ model user {
   lastBooster BigInt?
   token       String?
   currency    Int     @default(0)
+
+  // ✅ Les noms doivent correspondre exactement à ceux du modèle Auction
+  auctionsSold Auction[] @relation("AuctionSeller") // Enchères créées
+  auctionsBid  Auction[] @relation("AuctionBidder") // Enchères participées
+}
+
+model Auction {
+  id        Int      @id @default(autoincrement())
+  card_id   Int
+  seller_id Int
+  end_date  DateTime
+  bidder_id Int?
+  bid       Int      @default(0)
+
+  // Relations
+  card   card  @relation(fields: [card_id], references: [id])
+  seller user  @relation("AuctionSeller", fields: [seller_id], references: [id])
+  bidder user? @relation("AuctionBidder", fields: [bidder_id], references: [id])
+
+  @@map("auctions")
 }

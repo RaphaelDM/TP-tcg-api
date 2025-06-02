@@ -65,7 +65,7 @@ async function LoginUser(req, res) {
 
   // Génère un token JWT valide 15 minutes
   const token = jwt.sign({ id: user.id, username }, SECRET_KEY, {
-    expiresIn: '15min',
+    expiresIn: '600min',
   });
 
   // Met à jour le token de l'utilisateur en base

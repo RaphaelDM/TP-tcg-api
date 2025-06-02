@@ -6,6 +6,8 @@ const port = 3000;
 
 const users = require("./Moduleuser");
 const player = require("./cards");
+const auction = require("./ModuleEnchere");
+
 
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -35,6 +37,16 @@ app.post("/booster", player.OpenBooster);
 app.get("/cards", player.GetAllCards);
 // Convertion Cartes 
 app.post("/convert", player.ConvertCard);
+
+// Enchères creation
+app.post("/enchere", auction.CreateAuction);
+// Enchères placement
+app.post("/encherir", auction.PlaceBid);
+// Enchères liste
+app.get("/encheres", auction.GetAllEncheres);
+//Close Enchère
+app.post("/cloturer", auction.CloturerEnchere);
+
 
 app.listen(port, () =>
   console.log(`✅ Serveur démarré sur http://localhost:${port}`)
