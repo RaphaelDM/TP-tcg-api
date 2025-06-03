@@ -11,6 +11,7 @@ import {
   ScrollView,
   Image,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // =============================
 // Interfaces de données
@@ -47,10 +48,20 @@ export default function Dashboard() {
   const [loginError, setLoginError] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
   const [registerMessage, setRegisterMessage] = useState("");
-  const [viewMode, setViewMode] = useState<"collection" | "booster" | null>(null);
+  const [viewMode, setViewMode] = useState<"collection" | "booster" | null>(
+    null
+  );
 
   // Quantités sélectionnées pour la conversion de doublons
-  const [convertQuantities, setConvertQuantities] = useState<{ [cardId: number]: number }>({});
+  const [convertQuantities, setConvertQuantities] = useState<{
+    [cardId: number]: number;
+  }>({});
+
+  // Etat pour les enchères
+  const [auctions, setAuctions] = useState<any[]>([]);
+  const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
+  const [startBid, setStartBid] = useState("");
+  const [bidAmounts, setBidAmounts] = useState<{ [key: number]: number }>({});
 
   // =============================
   // Fonctions : Authentification
@@ -123,6 +134,95 @@ export default function Dashboard() {
   };
 
   // =============================
+  // Enchères : Création, récupération et clôture
+  // =============================
+  const fetchAuctions = async () => {
+    try {
+      const res = await fetch("http://172.20.10.2:3000/encheres", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`, // Assure-toi que "token" est défini dans ton scope
+        },
+      });
+
+      const json = await res.json();
+      setAuctions(json.encheres || []);
+    } catch {
+      setApiMessage("❌ Impossible de récupérer les enchères");
+    }
+  };
+
+  const createAuction = async () => {
+    if (!selectedCardId || !startBid) return;
+
+    try {
+      const res = await fetch("http://172.20.10.2:3000/enchere", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cardId: selectedCardId,
+          startBid: parseInt(startBid),
+        }),
+      });
+
+      const json = await res.json();
+      setApiMessage(json.message);
+      fetchUser();
+      fetchAuctions();
+    } catch {
+      setApiMessage("❌ Erreur création enchère");
+    }
+  };
+
+  const placeBid = async (enchereId: number, montant: number) => {
+    try {
+      const res = await fetch("http://172.20.10.2:3000/encherir", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ enchereId, montant }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        setApiMessage(json.message || "❌ Erreur lors de l'enchère");
+      } else {
+        setApiMessage(json.message);
+        fetchUser(); // Mise à jour du solde
+        fetchAuctions(); // Mise à jour de l’enchère
+      }
+    } catch (err) {
+      setApiMessage("❌ Erreur réseau lors de l'enchère");
+    }
+  };
+
+  const closeAuction = async (auctionId: number) => {
+    try {
+      const res = await fetch("http://172.20.10.2:3000/cloturer", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ auctionId }),
+      });
+
+      const json = await res.json();
+      setApiMessage(json.message);
+      fetchUser();
+      fetchAuctions();
+    } catch {
+      setApiMessage("❌ Erreur lors de la clôture");
+    }
+  };
+
+  // =============================
   // Booster : Tirage de cartes
   // =============================
   const openBooster = async () => {
@@ -186,256 +286,354 @@ export default function Dashboard() {
   // Ensuite tu peux commenter les blocs JSX si tu veux (login form, booster view, collection view, etc.)
   // ...
   return (
-    <ScrollView
-      contentContainerStyle={[
-        token ? styles.containerConnected : styles.containerCentered,
-      ]}
-      keyboardShouldPersistTaps="handled"
-      bounces={false}
-    >
-      {!token ? (
-        <>
+    <SafeAreaView style={{ flex: 1 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          padding: 20,
+        }}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
+        {!token ? (
           <>
-            <Text style={styles.title}>
-              {mode === "login" ? "Connexion" : "Inscription"}
-            </Text>
+            <>
+              <Text style={styles.title}>
+                {mode === "login" ? "Connexion" : "Inscription"}
+              </Text>
 
-            <TextInput
-              style={[styles.input, loginError && styles.inputError]}
-              placeholder="Nom d'utilisateur"
-              placeholderTextColor="#888"
-              value={username}
-              onChangeText={setUsername}
-            />
-            <TextInput
-              style={[styles.input, loginError && styles.inputError]}
-              placeholder="Mot de passe"
-              placeholderTextColor="#888"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+              <TextInput
+                style={[styles.input, loginError && styles.inputError]}
+                placeholder="Nom d'utilisateur"
+                placeholderTextColor="#888"
+                value={username}
+                onChangeText={setUsername}
+              />
+              <TextInput
+                style={[styles.input, loginError && styles.inputError]}
+                placeholder="Mot de passe"
+                placeholderTextColor="#888"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
 
-            {mode === "login" ? (
-              <>
-                {loginError !== "" && (
-                  <Text style={styles.loginErrorText}>{loginError}</Text>
-                )}
-                <TouchableOpacity style={styles.button} onPress={login}>
-                  <Text style={styles.buttonText}>🔐 Se connecter</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setMode("register")}>
-                  <Text style={styles.switchModeText}>
-                    📝 Pas encore inscrit ? Créer un compte
-                  </Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                {registerMessage !== "" && (
-                  <Text style={styles.apiMessage}>{registerMessage}</Text>
-                )}
-                <TouchableOpacity style={styles.button} onPress={register}>
-                  <Text style={styles.buttonText}>✅ Créer un compte</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setMode("login")}>
-                  <Text style={styles.switchModeText}>
-                    🔄 Déjà inscrit ? Se connecter
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
+              {mode === "login" ? (
+                <>
+                  {loginError !== "" && (
+                    <Text style={styles.loginErrorText}>{loginError}</Text>
+                  )}
+                  <TouchableOpacity style={styles.button} onPress={login}>
+                    <Text style={styles.buttonText}>🔐 Se connecter</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setMode("register")}>
+                    <Text style={styles.switchModeText}>
+                      📝 Pas encore inscrit ? Créer un compte
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  {registerMessage !== "" && (
+                    <Text style={styles.apiMessage}>{registerMessage}</Text>
+                  )}
+                  <TouchableOpacity style={styles.button} onPress={register}>
+                    <Text style={styles.buttonText}>✅ Créer un compte</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setMode("login")}>
+                    <Text style={styles.switchModeText}>
+                      🔄 Déjà inscrit ? Se connecter
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </>
           </>
-        </>
-      ) : (
-        <>
-          <View style={styles.headerContainer}>
-            {userInfo && (
-              <View style={styles.currencyBadge}>
-                <Text style={styles.currencyText}>
-                  {userInfo.currency || 0}
-                </Text>
-                <Text style={styles.currencyIcon}>💰</Text>
-              </View>
-            )}
-            <TouchableOpacity style={styles.button} onPress={handleViewProfile}>
-              <Text style={styles.buttonText}>👤 Voir mon profil</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.button} onPress={openBooster}>
-              <Text style={styles.buttonText}>📦 Ouvrir un booster</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.button} onPress={logout}>
-              <Text style={styles.buttonText}>🔓 Déconnexion</Text>
-            </TouchableOpacity>
-
-            {viewMode === "booster" && boosterCards.length > 0 && (
-              <Text style={styles.apiMessage}>{apiMessage}</Text>
-            )}
-            <Text style={styles.apiMessage}>🎁 Cartes gagnée:</Text>
-
-            {boosterCards.length > 0 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.boosterCardsScroll}
-                contentContainerStyle={styles.boosterCardsContainer}
+        ) : (
+          <>
+            <View style={styles.headerContainer}>
+              {userInfo && (
+                <View style={styles.currencyBadge}>
+                  <Text style={styles.currencyText}>
+                    {userInfo.currency || 0}
+                  </Text>
+                  <Text style={styles.currencyIcon}>💰</Text>
+                </View>
+              )}
+              <TouchableOpacity
+                style={styles.button}
+                onPress={handleViewProfile}
               >
-                {boosterCards.map((card, index) => (
-                  <View key={index} style={styles.boosterCardBox}>
-                    <Image
-                      source={{ uri: card.image }}
-                      style={styles.boosterCardImage}
-                    />
-                    <Text style={styles.cardName}>{card.name}</Text>
-                    <Text style={styles.cardRarity}>
-                      {card.rarity === "common" && "⚪ Common"}
-                      {card.rarity === "rare" && "🔷 Rare"}
-                      {card.rarity === "legendary" && "🟡 Legendary"}
-                    </Text>
+                <Text style={styles.buttonText}>👤 Voir mon profil</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.button} onPress={openBooster}>
+                <Text style={styles.buttonText}>📦 Ouvrir un booster</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.button} onPress={fetchAuctions}>
+                <Text style={styles.buttonText}>🛒 Voir les enchères</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.apiMessage}>Créer une enchère :</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="ID carte à vendre"
+                placeholderTextColor="#888"
+                value={selectedCardId ? selectedCardId.toString() : ""}
+                onChangeText={(val) => setSelectedCardId(parseInt(val) || null)}
+                keyboardType="numeric"
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Mise de départ"
+                placeholderTextColor="#888"
+                value={startBid}
+                onChangeText={setStartBid}
+                keyboardType="numeric"
+              />
+              <TouchableOpacity style={styles.button} onPress={createAuction}>
+                <Text style={styles.buttonText}>📤 Mettre en enchère</Text>
+              </TouchableOpacity>
+
+              {auctions.map((auction) => (
+                <View key={auction.id} style={styles.auctionBox}>
+                  <Text style={styles.auctionText}>
+                    🃏 Carte : {auction.card?.name || "?"}
+                  </Text>
+                  <Text style={styles.auctionText}>
+                    💰 Prix actuel : {auction.bid}
+                  </Text>
+                  <Text style={styles.auctionText}>
+                    👤 Vendeur : {auction.seller_id}
+                  </Text>
+                  <Text style={styles.auctionText}>
+                    ⏰ Fin : {new Date(auction.end_date).toLocaleString()}
+                  </Text>
+
+                  <TextInput
+                    style={[styles.input, { marginTop: 10 }]}
+                    placeholder="Montant de l'enchère"
+                    placeholderTextColor="#888"
+                    keyboardType="numeric"
+                    value={bidAmounts[auction.id]?.toString() || ""}
+                    onChangeText={(val) => {
+                      const value = parseInt(val) || 0;
+                      setBidAmounts((prev) => ({
+                        ...prev,
+                        [auction.id]: value,
+                      }));
+                    }}
+                  />
+
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      marginTop: 10,
+                    }}
+                  >
+                    <TouchableOpacity
+                      style={[
+                        styles.button,
+                        { backgroundColor: "#27ae60", flex: 1, marginRight: 5 },
+                      ]}
+                      onPress={() =>
+                        placeBid(auction.id, bidAmounts[auction.id] || 0)
+                      }
+                    >
+                      <Text style={styles.buttonText}>💸 Enchérir</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.button,
+                        { backgroundColor: "#e74c3c", flex: 1, marginLeft: 5 },
+                      ]}
+                      onPress={() => closeAuction(auction.id)}
+                    >
+                      <Text style={styles.buttonText}>🛑 Clôturer</Text>
+                    </TouchableOpacity>
                   </View>
-                ))}
-              </ScrollView>
-            )}
+                </View>
+              ))}
 
-            <Text style={styles.title}>📚 Ma collection :</Text>
-          </View>
-          <ScrollView
-            style={{ width: "100%", paddingBottom: 40, marginBottom: 40 }}
-            // nestedScrollEnabled={true}
-          >
-            {userInfo && (
-              <View style={styles.table}>
-                {["common", "rare", "legendary"].map((rarity) => (
-                  <View key={rarity} style={styles.column}>
-                    <Text style={styles.columnTitle}>
-                      {rarity === "common" && "⚪ Common"}
-                      {rarity === "rare" && "🔷 Rare"}
-                      {rarity === "legendary" && "🟡 Legendary"}
-                    </Text>
+              <TouchableOpacity style={styles.button} onPress={logout}>
+                <Text style={styles.buttonText}>🔓 Déconnexion</Text>
+              </TouchableOpacity>
 
-                    {(userInfo.collection || [])
-                      .filter((card) => card.rarity === rarity)
-                      .map((card, index) => (
-                        <View
-                          key={index}
-                          style={{ alignItems: "center", marginVertical: 8 }}
-                        >
-                          {card?.image && (
-                            <Image
-                              source={{ uri: card.image }}
-                              style={{
-                                width: 80,
-                                height: 80,
-                                borderRadius: 6,
-                                marginBottom: 4,
-                              }}
-                            />
-                          )}
-                          <Text style={styles.cardText}>
-                            {card.name}{" "}
-                            {card.count > 1 ? `(x${card.count})` : ""}
-                          </Text>
+              {viewMode === "booster" && boosterCards.length > 0 && (
+                <Text style={styles.apiMessage}>{apiMessage}</Text>
+              )}
+              <Text style={styles.apiMessage}>🎁 Cartes gagnée:</Text>
 
-                          {card.count > 1 && (
-                            <View
-                              style={{ alignItems: "center", marginTop: 6 }}
-                            >
-                              <View
+              {boosterCards.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.boosterCardsScroll}
+                  contentContainerStyle={styles.boosterCardsContainer}
+                >
+                  {boosterCards.map((card, index) => (
+                    <View key={index} style={styles.boosterCardBox}>
+                      <Image
+                        source={{ uri: card.image }}
+                        style={styles.boosterCardImage}
+                      />
+                      <Text style={styles.cardName}>{card.name}</Text>
+                      <Text style={styles.cardRarity}>
+                        {card.rarity === "common" && "⚪ Common"}
+                        {card.rarity === "rare" && "🔷 Rare"}
+                        {card.rarity === "legendary" && "🟡 Legendary"}
+                      </Text>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+
+              <Text style={styles.title}>📚 Ma collection :</Text>
+            </View>
+            <ScrollView
+              style={{ width: "100%", paddingBottom: 40, marginBottom: 40 }}
+              nestedScrollEnabled={true}
+            >
+              {userInfo && (
+                <View style={styles.table}>
+                  {["common", "rare", "legendary"].map((rarity) => (
+                    <View key={rarity} style={styles.column}>
+                      <Text style={styles.columnTitle}>
+                        {rarity === "common" && "⚪ Common"}
+                        {rarity === "rare" && "🔷 Rare"}
+                        {rarity === "legendary" && "🟡 Legendary"}
+                      </Text>
+
+                      {(userInfo.collection || [])
+                        .filter((card) => card.rarity === rarity)
+                        .map((card, index) => (
+                          <View
+                            key={index}
+                            style={{ alignItems: "center", marginVertical: 8 }}
+                          >
+                            {card?.image && (
+                              <Image
+                                source={{ uri: card.image }}
                                 style={{
-                                  flexDirection: "row",
-                                  alignItems: "center",
+                                  width: 80,
+                                  height: 80,
+                                  borderRadius: 6,
                                   marginBottom: 4,
                                 }}
+                              />
+                            )}
+                            <Text style={styles.cardText}>
+                              {card.name}{" "}
+                              {card.count > 1 ? `(x${card.count})` : ""}
+                            </Text>
+
+                            {card.count > 1 && (
+                              <View
+                                style={{ alignItems: "center", marginTop: 6 }}
                               >
-                                <TouchableOpacity
+                                <View
                                   style={{
-                                    backgroundColor: "#444",
-                                    paddingHorizontal: 8,
-                                    paddingVertical: 4,
-                                    borderRadius: 4,
+                                    flexDirection: "row",
+                                    alignItems: "center",
+                                    marginBottom: 4,
                                   }}
-                                  onPress={() =>
-                                    updateConvertAmount(
-                                      card.id,
-                                      -1,
-                                      card.count - 1
-                                    )
-                                  }
                                 >
-                                  <Text style={{ color: "#fff", fontSize: 16 }}>
-                                    –
+                                  <TouchableOpacity
+                                    style={{
+                                      backgroundColor: "#444",
+                                      paddingHorizontal: 8,
+                                      paddingVertical: 4,
+                                      borderRadius: 4,
+                                    }}
+                                    onPress={() =>
+                                      updateConvertAmount(
+                                        card.id,
+                                        -1,
+                                        card.count - 1
+                                      )
+                                    }
+                                  >
+                                    <Text
+                                      style={{ color: "#fff", fontSize: 16 }}
+                                    >
+                                      –
+                                    </Text>
+                                  </TouchableOpacity>
+
+                                  <Text
+                                    style={{
+                                      marginHorizontal: 10,
+                                      color: "#fff",
+                                    }}
+                                  >
+                                    {convertQuantities[card.id] || 1}
                                   </Text>
-                                </TouchableOpacity>
 
-                                <Text
-                                  style={{
-                                    marginHorizontal: 10,
-                                    color: "#fff",
-                                  }}
-                                >
-                                  {convertQuantities[card.id] || 1}
-                                </Text>
+                                  <TouchableOpacity
+                                    style={{
+                                      backgroundColor: "#444",
+                                      paddingHorizontal: 8,
+                                      paddingVertical: 4,
+                                      borderRadius: 4,
+                                    }}
+                                    onPress={() =>
+                                      updateConvertAmount(
+                                        card.id,
+                                        1,
+                                        card.count - 1
+                                      )
+                                    }
+                                  >
+                                    <Text
+                                      style={{ color: "#fff", fontSize: 16 }}
+                                    >
+                                      +
+                                    </Text>
+                                  </TouchableOpacity>
+                                </View>
 
                                 <TouchableOpacity
-                                  style={{
-                                    backgroundColor: "#444",
-                                    paddingHorizontal: 8,
-                                    paddingVertical: 4,
-                                    borderRadius: 4,
-                                  }}
+                                  style={[
+                                    styles.button,
+                                    {
+                                      backgroundColor: "#FF6B6B",
+                                      paddingVertical: 6,
+                                    },
+                                  ]}
                                   onPress={() =>
-                                    updateConvertAmount(
+                                    handleConvert(
                                       card.id,
-                                      1,
-                                      card.count - 1
+                                      convertQuantities[card.id] || 1
                                     )
                                   }
                                 >
-                                  <Text style={{ color: "#fff", fontSize: 16 }}>
-                                    +
+                                  <Text
+                                    style={{
+                                      color: "white",
+                                      fontSize: 12,
+                                      fontWeight: "bold",
+                                    }}
+                                  >
+                                    🔁 Convertir
                                   </Text>
                                 </TouchableOpacity>
                               </View>
-
-                              <TouchableOpacity
-                                style={[
-                                  styles.button,
-                                  {
-                                    backgroundColor: "#FF6B6B",
-                                    paddingVertical: 6,
-                                  },
-                                ]}
-                                onPress={() =>
-                                  handleConvert(
-                                    card.id,
-                                    convertQuantities[card.id] || 1
-                                  )
-                                }
-                              >
-                                <Text
-                                  style={{
-                                    color: "white",
-                                    fontSize: 12,
-                                    fontWeight: "bold",
-                                  }}
-                                >
-                                  🔁 Convertir
-                                </Text>
-                              </TouchableOpacity>
-                            </View>
-                          )}
-                        </View>
-                      ))}
-                  </View>
-                ))}
-              </View>
-            )}
-          </ScrollView>
-        </>
-      )}
-    </ScrollView>
+                            )}
+                          </View>
+                        ))}
+                    </View>
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+          </>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -502,12 +700,12 @@ const styles = StyleSheet.create({
   },
 
   containerConnected: {
-    flex: 1,
+    // flex: 1,
     backgroundColor: "#121212",
     padding: 20,
   },
   containerCentered: {
-    flex: 1,
+    // flex: 1,
     backgroundColor: "#121212",
     justifyContent: "center",
     alignItems: "center",
@@ -624,5 +822,21 @@ const styles = StyleSheet.create({
   },
   currencyIcon: {
     fontSize: 16,
+  },
+  auctionBox: {
+    backgroundColor: "#1e1e1e",
+    padding: 16,
+    borderRadius: 12,
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  auctionText: {
+    color: "#fff",
+    fontSize: 14,
+    marginBottom: 4,
   },
 });

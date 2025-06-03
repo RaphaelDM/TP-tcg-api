@@ -1,113 +1,110 @@
-# 🥢 Pokémon TCG – App Mobile & API
 
-Une application mobile et une API pour gérer un **jeu de cartes à collectionner Pokémon** avec ouverture de boosters, collection dynamique, et affichage des cartes disponibles.
+# Documentation de l'API TCG
 
----
-
-## 🚀 Fonctionnalités
-
-* 📲 Application mobile React Native
-* 🔥 Navigation simple : Accès à la collection et aux boosters
-* 🃏 Affichage des cartes via une API Node/Express 
-* Systeme d'enchère 
-
+Cette API permet de gérer un jeu de cartes à collectionner (comme pokémon TCG) avec des fonctionnalités d'inscription, de connexion, d'ouverture de boosters, de gestion d'enchères, etc. L'API en partique sert de séparer la logique et le visuel d'une application pour rendre un code plus lisible. L'api et tres pratique si on veux communiquer sur plusieurs appereiles (Mobile,Ordinateur,tablette...) 
 
 ---
+## BACK:
+    ## Endpoints Disponibles
 
-## 📁 Structure du projet
+    | Méthode  | Route       | Description                                  | Authentification | Paramètres requis                                    | Réponses possibles                |
+    | -------- | ----------- | -------------------------------------------- | ---------------- | ---------------------------------------------------- | --------------------------------- |
+    | **POST** | `/inscrit`  | Inscription d’un utilisateur                 | ❌                | Body : `username`, `password`                        | `201` Créé, `400`, `409`          |
+    | **POST** | `/login`    | Connexion d’un utilisateur                   | ❌                | Body : `username`, `password`                        | `200` OK, `400`, `401`            |
+    | **POST** | `/deco`     | Déconnexion (invalide le token)              | ❌                | Body : `token`                                       | `200`, `400`, `401`               |
+    | **GET**  | `/user`     | Infos du compte connecté                     | ✅                | Header : `Authorization: Bearer <token>`             | `200`, `400`, `401`, `404`        |
+    | **GET**  | `/users`    | Liste de tous les utilisateurs               | ❌                | Aucun                                                | `200`, `500`                      |
+    | **GET**  | `/cards`    | Liste des cartes du jeu                      | ❌                | Aucun                                                | `200`, `500`                      |
+    | **POST** | `/booster`  | Ouvrir un booster (délai entre 2 ouvertures) | ✅                | Header : `Authorization: Bearer <token>`             | `200`, `400`, `401`, `429`        |
+    | **POST** | `/convert`  | Convertir des cartes en crédits              | ✅                | Header : `Authorization`, Body : `cardId`, `amount`  | `200`, `400`, `401`, `404`        |
+    | **POST** | `/enchere`  | Créer une enchère                            | ✅                | Header : `Authorization`, Body : `cardId`, `endDate` | `200`, `400`, `401`               |
+    | **POST** | `/encherir` | Enchérir sur une enchère                     | ✅                | Header : `Authorization`, Body : `auctionId`, `bid`  | `200`, `400`, `401`, `403`        |
+    | **GET**  | `/encheres` | Liste des enchères en cours                  | ❌                | Aucun                                                | `200`                             |
+    | **POST** | `/cloturer` | Clôturer une enchère (vendeur ou acheteur)   | ✅                | Header : `Authorization`, Body : `auctionId`         | `200`, `400`, `401`, `403`, `404` |
 
-```
-/backend            ← Express.js + Prisma API
-/mobile             ← App mobile React Native (Expo)
-/README.md
-```
 
----
 
-## 📦 Prérequis
+    ---
 
-* Node.js (>= 16)
-* Expo CLI (`npm install -g expo-cli`)
-* MySQL (pour la base de données Prisma)
-* Git
+    ## Codes de Réponse & Messages d’Erreur
 
----
+    | Code | Signification | Exemple de Message |
+    |------|----------------|---------------------|
+    | 200  | Succès         | Clôturée avec succès |
+    | 201  | Créé           | Utilisateur ajouté avec succès |
+    | 400  | Requête invalide | Token ou ID enchère manquant |
+    | 401  | Non autorisé   | Token invalide ou expiré |
+    | 403  | Interdit       | Vous n'avez pas le droit |
+    | 404  | Introuvable    | Carte introuvable, Utilisateur non trouvé |
+    | 409  | Conflit        | Utilisateur existe déjà |
+    | 429  | Trop de requêtes | Veuillez patienter 20 secondes |
+    | 500  | Erreur serveur | Erreur serveur |
 
-## 🔧 Installation
+    ---
 
-### 1. Clone le projet
+    ## Authentification
 
-```bash
-git clone https://github.com/RaphaelDM/TP-tcg-api.git
-cd TP-tcg-api
-```
+    Certains endpoints nécessitent un token d’authentification via un header :
 
----
+    ```
+    Authorization: Bearer <token>
+    ```
 
-## 🔧 Lancer l'API Express
+    ---
 
-```bash
-cd backend
-npm install
-npx prisma generate
-npx prisma migrate dev --name init
-npm start
-```
+    ## Exemple de Corps de Requête
 
-> L'API démarre sur `http://localhost:3000`
+    **Inscription / Connexion**
+    ```json
+    {
+      "username": "alice",
+      "password": "secret"
+    }
+    ```
 
----
+    **Convertir une carte**
+    ```json
+    {
+      "cardId": 1,
+      "amount": 2
+    }
+    ```
 
-## 📱 Lancer l'app mobile
+    **Créer une enchère**
+    ```json
+    {
+      "cardId": 5,
+      "endDate": "2025-05-27T14:00:00.000Z"
+    }
+    ```
 
-```bash
-cd front-mobile
-npm install
-npx expo start
-```
+    ---
 
-> Ouvrez avec l'app Expo Go sur Android/iOS
+    ## Notes
 
----
+    - Un utilisateur ne peut ouvrir un booster que toutes les 30 secondes.
+    - Une enchère ne peut être clôturée que par le vendeur ou le dernier enchérisseur au bout de 1h sinon le vendeur garde sa carte si il n'as pas d'acheteur .
+    - Les doublons permettent de gagner des crédits selon la rareté :
+      - Commun: 10
+      - Rare: 20
+      - Légendaire: 50
 
-## 🛍️ Navigation mobile
+## Front 
 
-| Écran      | Description                             |
-| ---------- | --------------------------------------- |
-| Accueil    | Page d’entrée avec 2 boutons principaux |
-| Collection | Affiche toutes les cartes disponibles   |
-| Booster    | Permet d’ouvrir un booster de cartes    |
+Pour voire le front avec les appels API il faut aller dans les dossiers : 
+- front-mobile\app\(drawer)\(tabs)\booster.tsx : page de connexion/inscription , regarder les cartes , faire du trading , ouvrire booster. (Dashbord centrale de l'appli)
 
----
+- front-mobile\app\(drawer)\(tabs)\collection.tsx : pages pour afficher toutes les cartes a débloquer 
 
-## 🔌 API – Endpoints principaux
+- front-mobile\app\(drawer)\(tabs)\archive.tsx : pages pour recupérer tout les utilisateurs avec leurs infos
 
-| Méthode | URL         | Description                  |
-| ------- | ----------- | ---------------------------- |
-| GET     | `/cartes`   | Récupère toutes les cartes   |
-| POST    | `/booster`  | Tire un booster de cartes    |
-| POST    | `/register` | Inscription d’un utilisateur |
-| POST    | `/login`    | Connexion                    |
 
----
-
-## 🖼️ Design Pokémon
-
-* 🎨 Thème : Jaune pastel / Bleu clair
-* 📲 Police simple, boutons arrondis
-* 🥢 Style rétro et minimaliste, ambiance Pokedex
-
----
-📚 Sources
-
-OpenAI / ChatGPT
-
-Node.js documentation
-
-Prisma documentation
----
-## 📃 Licence
-
-Projet pédagogique — libre pour usage académique.
-
+Sources & technologies utilisées
+| Technologie / Outil  | Description rapide                                                                | Lien officiel                                    |
+| -------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **Node.js**          | Environnement JavaScript côté serveur pour exécuter du code backend.              | [nodejs.org](https://nodejs.org/)                |
+| **Prisma**           | ORM moderne et type-safe pour interagir avec des bases de données SQL.            | [prisma.io](https://www.prisma.io/)              |
+| **React Native**     | Framework mobile pour créer des apps iOS/Android en JavaScript.                   | [reactnative.dev](https://reactnative.dev/)      |
+| **Expo Go**          | Environnement de développement rapide pour les apps React Native.                 | [expo.dev](https://expo.dev/)                    |
+| **ChatGPT (OpenAI)** | Utilisé pour l’assistance au développement, génération de structure de documentation et debug. | [openai.com/chatgpt](https://openai.com/chatgpt) |
 

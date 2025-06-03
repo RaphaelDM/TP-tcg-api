@@ -49,9 +49,12 @@ export default function Library() {
         <Text style={styles.cardRarity}>{item.rarity.toUpperCase()}</Text>
       </View>
     );
+
+    
   };
 
   return (
+    
     <View style={styles.container}>
       <TouchableOpacity style={styles.button} onPress={fetchData}>
         <Text style={styles.buttonText}>🔄 Charger les cartes</Text>

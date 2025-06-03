@@ -45,6 +45,8 @@ node_modules/
 jspm_packages/
 node_modules/
 
+data/ancienneBDD/
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
