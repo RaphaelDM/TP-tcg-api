@@ -4,9 +4,9 @@ const express = require("express");
 const app = express();
 const port = 3000;
 
-const users = require("./Moduleuser");
-const player = require("./cards");
-const auction = require("./ModuleEnchere");
+const users = require("./modules/ModuleUser");
+const player = require("./modules/ModuleCards");
+const auction = require("./modules/ModuleEnchere");
 
 
 const { PrismaClient } = require("@prisma/client");

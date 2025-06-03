@@ -89,6 +89,9 @@ Cette API permet de gérer un jeu de cartes à collectionner (comme pokémon TCG
       - Rare: 20
       - Légendaire: 50
 
+    ## ORM
+    L'ORM choisi a été Prisma pour voir la liaison avec la BDD voir le schema de prisma  : back-API\prisma\schema.prisma
+
 ## Front 
 
 Pour voire le front avec les appels API il faut aller dans les dossiers : 
